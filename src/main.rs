@@ -1,6 +1,5 @@
 use serde_json::{Value, Number, Map};
 use std::env;
-use std::collections::HashMap;
 
 // Available if you need it!
 // use serde_bencode
@@ -49,7 +48,8 @@ fn decode_list(encoded_value: &str) -> Result<(Value, usize), &'static str> {
     let mut vector: Vec<Value> = Vec::new();
     let mut bytes_read: usize = 1;
     let mut string_slice = &encoded_value[1..];
-    while let Ok((value, size)) = decode(string_slice) {
+    while string_slice.chars().next().unwrap() != 'e' {
+        let (value, size) = decode(string_slice).unwrap();
         vector.push(value);
         bytes_read += size;
         string_slice = &encoded_value[bytes_read..]
