@@ -1,5 +1,6 @@
-use serde_json::{Value, Number};
+use serde_json::{Value, Number, Map};
 use std::env;
+use std::collections::HashMap;
 
 // Available if you need it!
 // use serde_bencode
@@ -17,29 +18,59 @@ fn decode(encoded_value: &str) -> Result<(Value, usize), &'static str> {
     // If encoded_value starts with a digit, it's a number
     if encoded_value.chars().next().unwrap().is_digit(10) {
         // Example: "5:hello" -> "hello"
-        let colon_index = encoded_value.find(':').unwrap();
-        let number_string = &encoded_value[..colon_index];
-        let number = number_string.parse::<i64>().unwrap();
-        let string = &encoded_value[colon_index + 1..colon_index + 1 + number as usize];
-        return Ok((Value::String(string.to_string()), colon_index + 1 + number as usize));
+        return decode_str(encoded_value);
     } else if encoded_value.chars().next().unwrap() == 'i' {
-        let end_index = encoded_value.find('e').unwrap();
-        let number_string = &encoded_value[1..end_index];
-        let number = number_string.parse::<i64>().unwrap();
-        return Ok((Value::Number(Number::from(number)), end_index + 1));
+        return decode_int(encoded_value);
     } else if encoded_value.chars().next().unwrap() == 'l' {
-        let mut vector: Vec<Value> = Vec::new();
-        let mut bytes_read: usize = 1;
-        let mut string_slice = &encoded_value[1..];
-        while let Ok((value, size)) = decode(string_slice) {
-            vector.push(value);
-            bytes_read += size;
-            string_slice = &encoded_value[bytes_read..]
-        }
-        return Ok((Value::Array(vector), bytes_read + 1));
+        return decode_list(encoded_value);
+    } else if encoded_value.chars().next().unwrap() == 'd' {
+        return decode_dict(encoded_value);
     } else {
         Err("invalid value to decode")
     }
+}
+
+fn decode_str(encoded_value: &str) -> Result<(Value, usize), &'static str> {
+    let colon_index = encoded_value.find(':').unwrap();
+    let number_string = &encoded_value[..colon_index];
+    let number = number_string.parse::<i64>().unwrap();
+    let string = &encoded_value[colon_index + 1..colon_index + 1 + number as usize];
+    return Ok((Value::String(string.to_string()), colon_index + 1 + number as usize));
+}
+
+fn decode_int(encoded_value: &str) -> Result<(Value, usize), &'static str> {
+    let end_index = encoded_value.find('e').unwrap();
+    let number_string = &encoded_value[1..end_index];
+    let number = number_string.parse::<i64>().unwrap();
+    return Ok((Value::Number(Number::from(number)), end_index + 1));
+}
+
+fn decode_list(encoded_value: &str) -> Result<(Value, usize), &'static str> {
+    let mut vector: Vec<Value> = Vec::new();
+    let mut bytes_read: usize = 1;
+    let mut string_slice = &encoded_value[1..];
+    while let Ok((value, size)) = decode(string_slice) {
+        vector.push(value);
+        bytes_read += size;
+        string_slice = &encoded_value[bytes_read..]
+    }
+    return Ok((Value::Array(vector), bytes_read + 1));
+}
+
+fn decode_dict(encoded_value: &str) -> Result<(Value, usize), &'static str> {
+    let mut bytes_read: usize = 1;
+    let mut map: Map<String, Value> = Map::new();
+    let mut string_slice = &encoded_value[1..];
+    while string_slice.chars().next().unwrap() != 'e' {
+        let (key, offset) = decode_str(string_slice).unwrap();
+        bytes_read += offset;
+        string_slice = &string_slice[offset..];
+        let (value, offset) = decode(string_slice).unwrap();
+        bytes_read += offset;
+        map.insert(key.as_str().unwrap().to_owned(), value);
+        string_slice = &string_slice[offset..];
+    }
+    return Ok((Value::Object(map), bytes_read + 1));
 }
 
 // Usage: your_bittorrent.sh decode "<encoded_value>"
