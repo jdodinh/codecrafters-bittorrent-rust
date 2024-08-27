@@ -82,7 +82,7 @@ fn test_torrent_file_parse() {
         Ok(_) => (),
     }
     println!("{:?}", file_contents);
-    let details = fmt_torrent_details(file_contents);
+    let details = fmt_torrent_info(file_contents);
     let expected = "Tracker URL: http://example.com\nLength: 1000\n";
     assert_eq!(details, expected);
 }

@@ -79,11 +79,8 @@ fn decode_dict(encoded_value: Vec<u8>) -> Result<(Value, usize), &'static str> {
     return Ok((Value::Object(map), bytes_read + 1));
 }
 
-fn fmt_torrent_details(file_contents: Vec<u8>) -> String {
+fn fmt_torrent_info(file_contents: Vec<u8>) -> String {
     let mut buffer = String::new();
-    // for (i, e) in file_contents.iter().enumerate() {
-    //     println!("{}: {:?}", i, e);
-    // }
     let map: Value = match decode_dict(file_contents) {
         Ok((map, _)) => map,
         Err(why) => panic!("error decoding map: {}", why),
@@ -127,7 +124,7 @@ fn main() {
             Err(why) => {println!("failed to read file contents: {}", why); self::panic!()},
             Ok(_) => (),
         }
-        println!("{}", fmt_torrent_details(file_contents));
+        println!("{}", fmt_torrent_info(file_contents));
     } else {
         println!("unknown command: {}", args[1])
     }
